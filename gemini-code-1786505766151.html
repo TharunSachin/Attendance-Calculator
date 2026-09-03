@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance Calculator</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 520px;
+      padding: 28px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 24px;
+    }
+
+    .input-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+    }
+
+    .error-msg {
+      color: var(--danger);
+      font-size: 0.8rem;
+      margin-top: 4px;
+      display: none;
+    }
+
+    .results {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      display: none;
+    }
+
+    .pct-badge {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f172a;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .pct-val {
+      font-size: 2rem;
+      font-weight: 800;
+    }
+
+    .status-pill {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .status-good { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+    .status-warn { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    .status-bad { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+
+    .grid-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .card {
+      background: #0f172a;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .card-full {
+      grid-column: span 2;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Attendance Tracker</h1>
+    <p class="subtitle">Calculate current standing, required classes, and safe leaves.</p>
+
+    <div class="input-group">
+      <label for="totalDays">Total Academic Days Conducted</label>
+      <input type="number" id="totalDays" placeholder="e.g. 50" min="1" oninput="calculate()">
+    </div>
+
+    <div class="input-group">
+      <label for="daysAbsent">Total Days of Absence</label>
+      <input type="number" id="daysAbsent" placeholder="e.g. 8" min="0" oninput="calculate()">
+      <div id="absentError" class="error-msg">Absence cannot exceed total academic days.</div>
+    </div>
+
+    <div class="input-group">
+      <label for="targetPct">Desired Attendance Target (%)</label>
+      <input type="number" id="targetPct" value="75" placeholder="75" min="1" max="100" oninput="calculate()">
+    </div>
+
+    <div id="results" class="results">
+      <div class="pct-badge">
+        <div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Current Attendance</div>
+          <div id="currentPct" class="pct-val">0%</div>
+        </div>
+        <span id="statusPill" class="status-pill status-good">Good</span>
+      </div>
+
+      <div class="grid-cards">
+        <div class="card">
+          <div class="card-title">Days Attended</div>
+          <div id="daysAttended" class="card-value">0</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Days Absent</div>
+          <div id="daysAbsentVal" class="card-value">0</div>
+        </div>
+
+        <div class="card card-full">
+          <div class="card-title" id="targetReqTitle">Classes Needed for Target</div>
+          <div id="daysNeeded" class="card-value" style="color: var(--primary);">0 days</div>
+        </div>
+
+        <div class="card card-full">
+          <div class="card-title">Safe Leaves Remaining (75% Threshold)</div>
+          <div id="safeLeaves75" class="card-value" style="color: var(--success);">0 days</div>
+        </div>
+
+        <div id="customTargetCard" class="card card-full" style="display: none;">
+          <div class="card-title" id="customTargetTitle">Safe Leaves Remaining (Custom Target)</div>
+          <div id="safeLeavesCustom" class="card-value" style="color: var(--success);">0 days</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function calculate() {
+      const totalDays = parseFloat(document.getElementById('totalDays').value);
+      const daysAbsent = parseFloat(document.getElementById('daysAbsent').value);
+      const targetPct = parseFloat(document.getElementById('targetPct').value) || 75;
+      
+      const errorEl = document.getElementById('absentError');
+      const resultsEl = document.getElementById('results');
+
+      if (isNaN(totalDays) || isNaN(daysAbsent) || totalDays <= 0 || daysAbsent < 0) {
+        resultsEl.style.display = 'none';
+        errorEl.style.display = 'none';
+        return;
+      }
+
+      if (daysAbsent > totalDays) {
+        errorEl.style.display = 'block';
+        resultsEl.style.display = 'none';
+        return;
+      }
+
+      errorEl.style.display = 'none';
+      resultsEl.style.display = 'block';
+
+      const presentDays = totalDays - daysAbsent;
+      const currentPct = (presentDays / totalDays) * 100;
+
+      // Update basic fields
+      document.getElementById('currentPct').innerText = currentPct.toFixed(2) + '%';
+      document.getElementById('daysAttended').innerText = presentDays;
+      document.getElementById('daysAbsentVal').innerText = daysAbsent;
+
+      // Status Pill
+      const statusPill = document.getElementById('statusPill');
+      if (currentPct >= targetPct) {
+        statusPill.innerText = 'On Track';
+        statusPill.className = 'status-pill status-good';
+      } else if (currentPct >= 75) {
+        statusPill.innerText = 'Above 75%';
+        statusPill.className = 'status-pill status-warn';
+      } else {
+        statusPill.innerText = 'Shortage';
+        statusPill.className = 'status-pill status-bad';
+      }
+
+      // Calculation 1: Consecutive days needed to hit desired target
+      const targetReqTitle = document.getElementById('targetReqTitle');
+      const daysNeededEl = document.getElementById('daysNeeded');
+      targetReqTitle.innerText = `Classes Needed to Reach ${targetPct}% Target`;
+
+      if (currentPct >= targetPct) {
+        daysNeededEl.innerText = '0 days (Target Reached)';
+        daysNeededEl.style.color = 'var(--success)';
+      } else if (targetPct >= 100) {
+        daysNeededEl.innerText = 'Not possible (100% target missed)';
+        daysNeededEl.style.color = 'var(--danger)';
+      } else {
+        const requiredDays = Math.ceil((targetPct * totalDays - 100 * presentDays) / (100 - targetPct));
+        daysNeededEl.innerText = `${requiredDays} consecutive day${requiredDays > 1 ? 's' : ''}`;
+        daysNeededEl.style.color = 'var(--primary)';
+      }
+
+      // Calculation 2: Safe leaves to maintain 75%
+      const safeLeaves75El = document.getElementById('safeLeaves75');
+      if (currentPct >= 75) {
+        const allowed75 = Math.floor((100 * presentDays - 75 * totalDays) / 75);
+        safeLeaves75El.innerText = `${allowed75} day${allowed75 !== 1 ? 's' : ''}`;
+        safeLeaves75El.style.color = 'var(--success)';
+      } else {
+        safeLeaves75El.innerText = '0 days (Currently below 75%)';
+        safeLeaves75El.style.color = 'var(--danger)';
+      }
+
+      // Calculation 3: Safe leaves for custom target (if target differs from 75%)
+      const customCard = document.getElementById('customTargetCard');
+      if (Math.abs(targetPct - 75) > 0.01) {
+        customCard.style.display = 'block';
+        document.getElementById('customTargetTitle').innerText = `Safe Leaves Remaining (${targetPct}% Target)`;
+        const customEl = document.getElementById('safeLeavesCustom');
+
+        if (currentPct >= targetPct) {
+          const allowedCustom = Math.floor((100 * presentDays - targetPct * totalDays) / targetPct);
+          customEl.innerText = `${allowedCustom} day${allowedCustom !== 1 ? 's' : ''}`;
+          customEl.style.color = 'var(--success)';
+        } else {
+          customEl.innerText = `0 days (Currently below ${targetPct}%)`;
+          customEl.style.color = 'var(--danger)';
+        }
+      } else {
+        customCard.style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
